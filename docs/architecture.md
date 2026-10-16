@@ -42,10 +42,12 @@
                          ▼     [ Read Replica ]
                    [ Worker Node ]
 
-Component DescriptionsDNS: Resolves domain names to server IP addresses globally for fast routing.CDN: Caches static web assets and frontend files at edge locations globally to reduce latency and protect app servers.Load Balancer: Distributes inbound traffic evenly across multiple application servers to prevent single-server overloads.App Servers: Stateless compute nodes that process backend business logic and API requests.Redis Cache: In-memory store used for lightning-fast session management and hot note caching.Message Queue: Buffers heavy asynchronous background tasks like search indexing or notification dispatch.Worker Node: Dedicated background process that continuously pulls tasks from the message queue to execute asynchronous jobs.Primary Database: Manages strict, ACID-compliant write operations (creates, updates, deletes).Read Replica: Offloads high-frequency read queries away from the primary database to boost performance.Request FlowsGET /notes Flow: Client sends request $\rightarrow$ DNS $\rightarrow$ CDN (for static assets) $\rightarrow$ Load Balancer $\rightarrow$ App Server $\rightarrow$ Read Replica fetches notes $\rightarrow$ JSON response returned to client.POST /notes Flow: Client sends payload $\rightarrow$ Load Balancer $\rightarrow$ App Server $\rightarrow$ Primary Database writes note $\rightarrow$ Cache is invalidated $\rightarrow$ 201 Created response sent back.Trade-offs & SPOF AvoidanceTrade-off: We choose eventual consistency for search index updates (processed asynchronously via the message queue and worker nodes) to ensure high write performance and availability.Single Points of Failure (SPOF) Avoidance: Outages are prevented by deploying redundant app servers behind a load balancer and configuring database master-slave replication with automated failover.
 
-### 2. Updated `api.js`
-Open your `api.js` file in VS Code, **replace its entire content** with the code below (which now disables the delete button during network calls), and save it:
+Component DescriptionsDNS: Resolves domain names to server IP addresses globally for fast routing.CDN: Caches static web assets and frontend files at edge locations globally to reduce latency and protect app servers.Load Balancer: Distributes inbound traffic evenly across multiple application servers to prevent single-server overloads.App Servers: Stateless compute nodes that process backend business logic and API requests.Redis Cache: In-memory store used for lightning-fast session management and hot note caching.Message Queue: Buffers heavy asynchronous background tasks like search indexing or notification dispatch.Worker Node: Dedicated background process that continuously pulls tasks from the message queue to execute asynchronous jobs.Primary Database: Manages strict, ACID-compliant write operations (creates, updates, deletes).Read Replica: Offloads high-frequency read queries away from the primary database to boost performance.Request FlowsGET /notes Flow: Client sends request $\rightarrow$ DNS $\rightarrow$ CDN (for static assets) $\rightarrow$ Load Balancer $\rightarrow$ App Server $\rightarrow$ Read Replica fetches notes $\rightarrow$ JSON response returned to client.POST /notes Flow: Client sends payload $\rightarrow$ Load Balancer $\rightarrow$ App Server $\rightarrow$ Primary Database writes note $\rightarrow$ Cache is invalidated $\rightarrow$ 201 Created response sent back.Trade-offs & SPOF AvoidanceTrade-off: We choose eventual consistency for search index updates (processed asynchronously via the message queue and worker nodes) to ensure high write performance and availability.Single Points of Failure (SPOF) Avoidance: Outages are prevented by deploying redundant app servers behind a load balancer and configuring database master-slave replication with automated failover.
+---
+
+### 2. Corrected `api.js` (with Delete Button protection)
+Open `api.js` in VS Code, **replace its entire content** with this complete script, and save it:
 
 ```javascript
 const API_URL = "https://jsonplaceholder.typicode.com/posts";
@@ -176,7 +178,7 @@ async function createNote(event) {
   }
 }
 
-// Task 3: DELETE (Remove note with button protection against rapid clicking)
+// Task 3: DELETE (Remove note with button disabled state to prevent spam clicking)
 async function deleteNote(id, listItemElement, deleteBtn) {
   deleteBtn.disabled = true;
   statusEl.textContent = `Deleting note ${id}...`;
@@ -198,7 +200,7 @@ async function deleteNote(id, listItemElement, deleteBtn) {
     statusEl.textContent = `Could not delete note ${id}.`;
     statusEl.className = "error";
     console.error(error);
-    deleteBtn.disabled = false; // Re-enable if deletion fails
+    deleteBtn.disabled = false; // Re-enable button only if the request fails
   }
 }
 
