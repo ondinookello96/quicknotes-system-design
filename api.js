@@ -17,7 +17,7 @@ async function request(url, options = {}) {
   return response.json();
 }
 
-// Render notes securely using textContent
+// Render notes securely using textContent and attach delete buttons
 function renderNotes(notes) {
   notesList.innerHTML = "";
   if (notes.length === 0) {
@@ -37,8 +37,14 @@ function renderNotes(notes) {
     const bodyEl = document.createElement("p");
     bodyEl.textContent = note.body;
 
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Delete";
+    deleteBtn.classList.add("delete-btn");
+    deleteBtn.addEventListener("click", () => deleteNote(note.id, li));
+
     li.appendChild(titleEl);
     li.appendChild(bodyEl);
+    li.appendChild(deleteBtn);
     notesList.appendChild(li);
   });
 }
@@ -70,7 +76,6 @@ async function createNote(event) {
   const title = titleInput.value.trim();
   const body = bodyInput.value.trim();
 
-  // Validation: Title required, max 100 characters
   if (!title || title.length > 100) {
     statusEl.textContent = "Validation error: Title is required and must be max 100 characters.";
     statusEl.className = "error";
@@ -92,7 +97,6 @@ async function createNote(event) {
     statusEl.textContent = `Note created (status 201, id ${createdNote.id}).`;
     statusEl.className = "success";
 
-    // Create list item for the new note and prepend it to the top
     const li = document.createElement("li");
     li.dataset.id = createdNote.id;
 
@@ -102,8 +106,14 @@ async function createNote(event) {
     const bodyEl = document.createElement("p");
     bodyEl.textContent = createdNote.body;
 
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "Delete";
+    deleteBtn.classList.add("delete-btn");
+    deleteBtn.addEventListener("click", () => deleteNote(createdNote.id, li));
+
     li.appendChild(titleEl);
     li.appendChild(bodyEl);
+    li.appendChild(deleteBtn);
     notesList.prepend(li);
 
     noteForm.reset();
@@ -113,6 +123,31 @@ async function createNote(event) {
     console.error(error);
   } finally {
     submitBtn.disabled = false;
+  }
+}
+
+// Task 3: DELETE (Remove note)
+async function deleteNote(id, listItemElement) {
+  statusEl.textContent = `Deleting note ${id}...`;
+  statusEl.className = "loading";
+
+  try {
+    // Note: JSONPlaceholder simulates DELETE and returns success.
+    await request(`${API_URL}/${id}`, { method: "DELETE" });
+    
+    listItemElement.remove();
+    statusEl.textContent = `Note ${id} deleted successfully.`;
+    statusEl.className = "success";
+
+    if (notesList.children.length === 0) {
+      const li = document.createElement("li");
+      li.textContent = "No notes available.";
+      notesList.appendChild(li);
+    }
+  } catch (error) {
+    statusEl.textContent = `Could not delete note ${id}.`;
+    statusEl.className = "error";
+    console.error(error);
   }
 }
 
